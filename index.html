@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Tarefas</title>
+</head>
+<body>
+    <header class="container header">
+        <h1>Organização de Tarefas</h1>
+    </header>
+
+    <div class="container">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Data de Início / Concluído</th>
+                </tr>
+            </thead>
+            <tbody id="tarefas-lista">
+              
+            </tbody>
+        </table>
+        
+        <div class="container">
+
+            <form id="formulario-tarefa">
+                <input type="text" id="input-tarefa" placeholder="Digite o título da sua tarefa">
+                <button type="submit" onclick="createNewTask()" id="addbtn" class="button">Adicionar</button>
+                <button type="submit" id="editbtn" class="button">Editar</button>
+                <button type="submit" id="removebtn" class="button">Remover</button>
+            </form>
+
+        </div>
+
+    </div>
+
+    <script src="tasks.js"></script>
+</body>
+</html>
