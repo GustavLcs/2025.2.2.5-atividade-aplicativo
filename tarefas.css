@@ -62,7 +62,7 @@ h1 {
     border-color: whitesmoke;
 }
 
-.deletebtn {
+.deletebtn, .editbtn {
     height: 20px;
     width: 20px;
 }

@@ -1,103 +1,200 @@
+let mode = "view"; // view | delete | edit
+let editingTaskId = null;
+
 function getTasks() {
     const tasks = localStorage.getItem("myTasks");
     return tasks ? JSON.parse(tasks) : [];
 }
 
-function showButtons(isDeleting) {
-    const htmlTasks = document.getElementById("tarefas-lista");
-    const tasks = getTasks();
-
-    htmlTasks.innerHTML = "";
-    
-    html = tasks.map(task => converterParaHTMLButton(task, isDeleting));
-    htmlTasks.innerHTML = html.join("");
-
+function saveTasks(tasks) {
+    localStorage.setItem("myTasks", JSON.stringify(tasks));
 }
 
 function createNewTask() {
-        let inputText = document.getElementById("input-tarefa");
-        const novoTitulo = inputText.value.trim();
+    const input = document.getElementById("input-tarefa");
+    const title = input.value.trim();
 
-        if (novoTitulo === "") {
-            alert("Digite um título primeiro!");
-            return;
-        }
+    if (!title) {
+        alert("Digite um título primeiro!");
+        return;
+    }
 
-        const data = new Date().toLocaleDateString();
-        
-        const newTask = {
-            titulo: novoTitulo,
-            concluido: false,
-            data_inicio: data,
-            data_conclusao: ""
-        };
-        
-        let tasks = getTasks();
-        tasks.push(newTask);
-        localStorage.setItem("myTasks", JSON.stringify(tasks));
+    const tasks = getTasks();
+    const date = new Date().toLocaleDateString();
 
-        renderTasks();
-        inputText.value = "";
+    tasks.push({
+        id: Date.now(),
+        titulo: title,
+        concluido: false,
+        data_inicio: date,
+        data_conclusao: ""
+    });
+
+    saveTasks(tasks);
+    renderTasks();
+    input.value = "";
 }
 
-function converterTaskParaHTML(task) {
-    return `<tr>
-        <td>
-            <p class="titulo-atividade">
-                ${task.titulo}
-            </p>
-        </td>
-        <td>
-            <p>${task.data_inicio}</p>
-            <input type="checkbox" ${task.concluido ? "checked": ""}></input>
-        </td>
-    </tr>`
+function removeTask(id) {
+    const tasks = getTasks().filter(task => task.id !== id);
+    saveTasks(tasks);
+    renderTasks();
 }
 
-function converterParaHTMLButton(task, isDeleting) {
-    return isDeleting ? `<tr>
-        <td>
-            <p class="titulo-atividade">
-                ${task.titulo}
-                <img src="images/remove_icon.png" class="deletebtn">
-            </p>
-        </td>
-        <td>
-            <p>${task.data_inicio}</p>
-            <input type="checkbox" ${task.concluido ? "checked": ""}></input>
-        </td>
-    </tr>` : `<tr>
-        <td>
-            <p class="titulo-atividade"> 
-                <img src="images/edit_icon.png" class="deletebtn">
-                ${task.titulo}
-            </p>
-        </td>
-        <td>
-            <p>${task.data_inicio}</p>
-            <input type="checkbox" ${task.concluido ? "checked": ""}></input>
-        </td>
-    </tr>`;
+function toggleTaskCompletion(id) {
+    const tasks = getTasks();
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    task.concluido = !task.concluido;
+    task.data_conclusao = task.concluido
+        ? new Date().toLocaleDateString()
+        : "";
+
+    saveTasks(tasks);
+    renderTasks();
+}
+
+function saveEditedTitle(id, newTitle) {
+    const title = newTitle.trim();
+    if (!title) {
+        alert("O título não pode estar vazio!");
+        return;
+    }
+
+    const tasks = getTasks();
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    task.titulo = title;
+    saveTasks(tasks);
+
+    editingTaskId = null;
+    renderTasks();
 }
 
 function renderTasks() {
-    if (localStorage.getItem("myTasks") != null) {
-        let htmlTasks = document.getElementById("tarefas-lista");
-        let tasks = getTasks();
+    const tasks = getTasks();
+    const table = document.getElementById("tarefas-lista");
 
-        html = tasks.map(task => converterTaskParaHTML(task));
-        htmlTasks.innerHTML = html.join("");
-    }
+    table.innerHTML = tasks.map(task => taskToHTML(task)).join("");
 }
 
+function taskToHTML(task) {
+    const isEditing = mode === "edit" && editingTaskId === task.id;
 
-const addbtn = document.getElementById("addbtn");
-const removebtn = document.getElementById("removebtn");
-const editbtn = document.getElementById("editbtn");
-const checkboxes = document.querySelectorAll("concluido");
+    return `
+    <tr data-id="${task.id}">
+        <td>
+            <p class="titulo-atividade">
 
-addbtn.addEventListener("click", createNewTask);
-removebtn.addEventListener("click", () => showButtons(true));
-editbtn.addEventListener("click", () => showButtons(false));
+                ${mode === "edit" && !isEditing ? `
+                    <img 
+                        src="images/edit_icon.png"
+                        class="editbtn"
+                        data-id="${task.id}"
+                    >
+                ` : ""}
+
+                ${mode === "delete" ? `
+                    <img 
+                        src="images/remove_icon.png"
+                        class="deletebtn"
+                        data-id="${task.id}"
+                    >
+                ` : ""}
+
+                ${
+                    isEditing
+                        ? `<input 
+                            type="text"
+                            class="edit-input"
+                            data-id="${task.id}"
+                            value="${task.titulo}"
+                            autofocus
+                        >`
+                        : task.titulo
+                }
+
+            </p>
+        </td>
+        <td>
+            <p>${task.data_inicio}</p>
+            <input 
+                type="checkbox"
+                name="concluido"
+                data-id="${task.id}"
+                ${task.concluido ? "checked" : ""}
+            >
+            <p>${task.data_conclusao}</p>
+        </td>
+    </tr>
+    `;
+}
+
+const table = document.getElementById("tarefas-lista");
+
+table.addEventListener("click", (e) => {
+    const deleteBtn = e.target.closest(".deletebtn");
+    if (deleteBtn) {
+        removeTask(Number(deleteBtn.dataset.id));
+        return;
+    }
+
+    const editBtn = e.target.closest(".editbtn");
+    if (editBtn) {
+        editingTaskId = Number(editBtn.dataset.id);
+        renderTasks();
+    }
+});
+
+table.addEventListener("change", (e) => {
+    const checkbox = e.target.closest('input[name="concluido"]');
+    if (!checkbox) return;
+
+    toggleTaskCompletion(Number(checkbox.dataset.id));
+});
+
+table.addEventListener("keydown", (e) => {
+    const input = e.target.closest(".edit-input");
+    if (!input) return;
+
+    if (e.key === "Enter") {
+        saveEditedTitle(Number(input.dataset.id), input.value);
+    }
+
+    if (e.key === "Escape") {
+        editingTaskId = null;
+        renderTasks();
+    }
+});
+
+table.addEventListener("blur", (e) => {
+    const input = e.target.closest(".edit-input");
+    if (!input) return;
+
+    saveEditedTitle(Number(input.dataset.id), input.value);
+}, true);
+
+document.getElementById("addbtn")
+    .addEventListener("click", createNewTask);
+
+document.getElementById("removebtn")
+    .addEventListener("click", () => {
+        mode = "delete";
+        editingTaskId = null;
+        renderTasks();
+    });
+
+document.getElementById("editbtn")
+    .addEventListener("click", () => {
+        mode = "edit";
+        editingTaskId = null;
+        renderTasks();
+    });
+
+/* =====================
+   INIT
+===================== */
 
 renderTasks();
